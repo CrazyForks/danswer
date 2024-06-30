@@ -28,14 +28,14 @@ function HelperItemDisplay({
 
 export function ChatIntro({
   availableSources,
-  availablePersonas,
   selectedPersona,
 }: {
   availableSources: ValidSources[];
-  availablePersonas: Persona[];
   selectedPersona: Persona;
 }) {
   const availableSourceMetadata = getSourceMetadataForSources(availableSources);
+
+  const [displaySources, setDisplaySources] = useState(false);
 
   return (
     <>
@@ -90,12 +90,13 @@ export function ChatIntro({
                     </div>
                   </div>
                 )}
+
                 {availableSources.length > 0 && (
-                  <div className="mt-2">
+                  <div className="mt-1">
                     <p className="font-bold mb-1 mt-4 text-emphasis">
                       Connected Sources:{" "}
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className={`flex flex-wrap gap-2`}>
                       {availableSourceMetadata.map((sourceMetadata) => (
                         <span
                           key={sourceMetadata.internalName}

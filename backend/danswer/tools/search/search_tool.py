@@ -69,6 +69,7 @@ class SearchTool(Tool):
         retrieval_options: RetrievalDetails | None,
         prompt_config: PromptConfig,
         llm: LLM,
+        fast_llm: LLM,
         pruning_config: DocumentPruningConfig,
         # if specified, will not actually run a search and will instead return these
         # sections. Used when the user selects specific docs to talk to
@@ -83,6 +84,7 @@ class SearchTool(Tool):
         self.retrieval_options = retrieval_options
         self.prompt_config = prompt_config
         self.llm = llm
+        self.fast_llm = fast_llm
         self.pruning_config = pruning_config
 
         self.selected_docs = selected_docs
@@ -120,7 +122,9 @@ class SearchTool(Tool):
     def build_tool_message_content(
         self, *args: ToolResponse
     ) -> str | list[str | dict[str, Any]]:
-        final_context_docs_response = args[2]
+        final_context_docs_response = next(
+            response for response in args if response.id == FINAL_CONTEXT_DOCUMENTS
+        )
         final_context_docs = cast(list[LlmDoc], final_context_docs_response.response)
 
         return json.dumps(
@@ -210,6 +214,7 @@ class SearchTool(Tool):
             ),
             user=self.user,
             llm=self.llm,
+            fast_llm=self.fast_llm,
             bypass_acl=self.bypass_acl,
             db_session=self.db_session,
         )

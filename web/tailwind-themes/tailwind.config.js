@@ -39,12 +39,17 @@ module.exports = {
       colors: {
         // background
         background: "#f9fafb", // gray-50
+        "background-subtle": "#e5e7eb", // gray-200
         "background-emphasis": "#f6f7f8",
         "background-strong": "#eaecef",
         "background-search": "#ffffff",
         "background-custom-header": "#f3f4f6",
+        "background-inverted": "#000000",
+        "background-weak": "#f3f4f6", // gray-100
+        "background-dark": "#111827", // gray-900
 
         // text or icons
+        light: "#e5e7eb", // gray-200
         link: "#3b82f6", // blue-500
         "link-hover": "#1d4ed8", // blue-700
         subtle: "#6b7280", // gray-500
@@ -60,6 +65,7 @@ module.exports = {
         // borders
         border: "#e5e7eb", // gray-200
         "border-light": "#f3f4f6", // gray-100
+        "border-medium": "#d1d5db", // gray-300
         "border-strong": "#9ca3af", // gray-400
 
         // hover
@@ -73,13 +79,6 @@ module.exports = {
           text: "#fef9c3", // yellow-100
         },
 
-        // bubbles in chat for each "user"
-        user: "#fb7185", // yellow-400
-        ai: "#60a5fa", // blue-400
-
-        // for display documents
-        document: "#ec4899", // pink-500
-
         // scrollbar
         scrollbar: {
           track: "#f9fafb",
@@ -91,6 +90,13 @@ module.exports = {
             "thumb-hover": "#c7cdd2",
           },
         },
+
+        // bubbles in chat for each "user"
+        user: "#fb7185", // yellow-400
+        ai: "#60a5fa", // blue-400
+
+        // for display documents
+        document: "#ec4899", // pink-500
 
         // light mode
         tremor: {
