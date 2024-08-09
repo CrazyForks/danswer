@@ -1,10 +1,9 @@
-import { SearchSection } from "@/components/search/SearchSection";
-import { Header } from "@/components/header/Header";
 import {
   AuthTypeMetadata,
   getAuthTypeMetadataSS,
   getCurrentUserSS,
 } from "@/lib/userSS";
+import { getSecondsUntilExpiration } from "@/lib/time";
 import { redirect } from "next/navigation";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import { ApiKeyModal } from "@/components/llm/ApiKeyModal";
@@ -20,7 +19,7 @@ import {
 import { unstable_noStore as noStore } from "next/cache";
 import { InstantSSRAutoRefresh } from "@/components/SSRAutoRefresh";
 import { personaComparator } from "../admin/assistants/lib";
-import { FullEmbeddingModelResponse } from "../admin/models/embedding/embeddingModels";
+import { FullEmbeddingModelResponse } from "../admin/models/embedding/components/types";
 import { NoSourcesModal } from "@/components/initialSetup/search/NoSourcesModal";
 import { NoCompleteSourcesModal } from "@/components/initialSetup/search/NoCompleteSourceModal";
 import { ChatPopup } from "../chat/ChatPopup";
@@ -28,6 +27,16 @@ import {
   FetchAssistantsResponse,
   fetchAssistantsSS,
 } from "@/lib/assistants/fetchAssistantsSS";
+import FunctionalWrapper from "../chat/shared_chat_search/FunctionalWrapper";
+import { ChatSession } from "../chat/interfaces";
+import { SIDEBAR_TOGGLED_COOKIE_NAME } from "@/components/resizable/constants";
+import ToggleSearch from "./WrappedSearch";
+import {
+  AGENTIC_SEARCH_TYPE_COOKIE_NAME,
+  NEXT_PUBLIC_DEFAULT_SIDEBAR_OPEN,
+  DISABLE_LLM_DOC_RELEVANCE,
+} from "@/lib/constants";
+import WrappedSearch from "./WrappedSearch";
 
 export default async function Home() {
   // Disable caching so we always get the up to date connector / document set / persona info
@@ -43,6 +52,7 @@ export default async function Home() {
     fetchAssistantsSS(),
     fetchSS("/query/valid-tags"),
     fetchSS("/secondary-index/get-embedding-models"),
+    fetchSS("/query/user-searches"),
   ];
 
   // catch cases where the backend is completely unreachable here
@@ -69,6 +79,7 @@ export default async function Home() {
     results[4] as FetchAssistantsResponse;
   const tagsResponse = results[5] as Response | null;
   const embeddingModelResponse = results[6] as Response | null;
+  const queryResponse = results[7] as Response | null;
 
   const authDisabled = authTypeMetadata?.authType === "disabled";
   if (!authDisabled && !user) {
@@ -95,6 +106,13 @@ export default async function Home() {
     );
   }
 
+  let querySessions: ChatSession[] = [];
+  if (queryResponse?.ok) {
+    querySessions = (await queryResponse.json()).sessions;
+  } else {
+    console.log(`Failed to fetch chat sessions - ${queryResponse?.text()}`);
+  }
+
   let assistants: Persona[] = initialAssistantsList;
   if (assistantsFetchError) {
     console.log(`Failed to fetch assistants - ${assistantsFetchError}`);
@@ -118,6 +136,7 @@ export default async function Home() {
     embeddingModelResponse && embeddingModelResponse.ok
       ? ((await embeddingModelResponse.json()) as FullEmbeddingModelResponse)
       : null;
+
   const currentEmbeddingModelName =
     embeddingModelVersionInfo?.current_model_name;
   const nextEmbeddingModelName =
@@ -149,14 +168,24 @@ export default async function Home() {
       (ccPair) => ccPair.has_successful_run && ccPair.docs_indexed > 0
     ) &&
     !shouldDisplayNoSourcesModal &&
-    !shouldShowWelcomeModal;
+    !shouldShowWelcomeModal &&
+    (!user || user.role == "admin");
+
+  const sidebarToggled = cookies().get(SIDEBAR_TOGGLED_COOKIE_NAME);
+  const agenticSearchToggle = cookies().get(AGENTIC_SEARCH_TYPE_COOKIE_NAME);
+
+  const toggleSidebar = sidebarToggled
+    ? sidebarToggled.value.toLocaleLowerCase() == "true" || false
+    : NEXT_PUBLIC_DEFAULT_SIDEBAR_OPEN;
+
+  const agenticSearchEnabled = agenticSearchToggle
+    ? agenticSearchToggle.value.toLocaleLowerCase() == "true" || false
+    : false;
+  const secondsUntilExpiration = getSecondsUntilExpiration(user);
 
   return (
     <>
-      <Header user={user} />
-      <div className="m-3">
-        <HealthCheckBanner />
-      </div>
+      <HealthCheckBanner secondsUntilExpiration={secondsUntilExpiration} />
       {shouldShowWelcomeModal && <WelcomeModal user={user} />}
 
       {!shouldShowWelcomeModal &&
@@ -174,18 +203,18 @@ export default async function Home() {
       <ChatPopup />
 
       <InstantSSRAutoRefresh />
-
-      <div className="px-24 pt-10 flex flex-col items-center min-h-screen">
-        <div className="w-full">
-          <SearchSection
-            ccPairs={ccPairs}
-            documentSets={documentSets}
-            personas={assistants}
-            tags={tags}
-            defaultSearchType={searchTypeDefault}
-          />
-        </div>
-      </div>
+      <WrappedSearch
+        disabledAgentic={DISABLE_LLM_DOC_RELEVANCE}
+        initiallyToggled={toggleSidebar}
+        querySessions={querySessions}
+        user={user}
+        ccPairs={ccPairs}
+        documentSets={documentSets}
+        personas={assistants}
+        tags={tags}
+        searchTypeDefault={searchTypeDefault}
+        agenticSearchEnabled={agenticSearchEnabled}
+      />
     </>
   );
 }

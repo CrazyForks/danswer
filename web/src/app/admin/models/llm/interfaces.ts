@@ -17,6 +17,8 @@ export interface WellKnownLLMProviderDescriptor {
   llm_names: string[];
   default_model: string | null;
   default_fast_model: string | null;
+  is_public: boolean;
+  groups: number[];
 }
 
 export interface LLMProvider {
@@ -28,6 +30,9 @@ export interface LLMProvider {
   custom_config: { [key: string]: string } | null;
   default_model_name: string;
   fast_default_model_name: string | null;
+  is_public: boolean;
+  groups: number[];
+  display_model_names: string[] | null;
 }
 
 export interface FullLLMProvider extends LLMProvider {
@@ -44,4 +49,7 @@ export interface LLMProviderDescriptor {
   default_model_name: string;
   fast_default_model_name: string | null;
   is_default_provider: boolean | null;
+  is_public: boolean;
+  groups: number[];
+  display_model_names: string[] | null;
 }

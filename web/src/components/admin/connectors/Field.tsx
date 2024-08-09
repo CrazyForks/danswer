@@ -17,6 +17,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
+import ReactMarkdown from "react-markdown";
+import { FaMarkdown } from "react-icons/fa";
+import { useState } from "react";
+import remarkGfm from "remark-gfm";
 
 export function SectionHeader({
   children,
@@ -82,7 +86,7 @@ export function ToolTipDetails({
           <FiInfo size={12} />
         </TooltipTrigger>
         <TooltipContent side="top" align="center">
-          <p className="bg-background-dark max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-inverted">
+          <p className="bg-background-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-inverted">
             {children}
           </p>
         </TooltipContent>
@@ -110,8 +114,11 @@ export function TextFormField({
   explanationText,
   explanationLink,
   small,
+  noPadding,
+  removeLabel,
 }: {
   name: string;
+  removeLabel?: boolean;
   label: string;
   subtext?: string | JSX.Element;
   placeholder?: string;
@@ -119,6 +126,7 @@ export function TextFormField({
   type?: string;
   isTextArea?: boolean;
   disabled?: boolean;
+  noPadding?: boolean;
   autoCompleteDisabled?: boolean;
   error?: string;
   defaultHeight?: string;
@@ -136,12 +144,10 @@ export function TextFormField({
   }
 
   return (
-    <div className="mb-6">
+    <div className={`${!noPadding && "mb-6"}`}>
       <div className="flex gap-x-2 items-center">
-        <Label small={small}>{label}</Label>
-
+        {!removeLabel && <Label small={small}>{label}</Label>}
         {tooltip && <ToolTipDetails>{tooltip}</ToolTipDetails>}
-
         {error ? (
           <ManualErrorMessage>{error}</ManualErrorMessage>
         ) : (
@@ -156,6 +162,7 @@ export function TextFormField({
       </div>
 
       {subtext && <SubLabel>{subtext}</SubLabel>}
+
       <Field
         as={isTextArea ? "textarea" : "input"}
         type={type}
@@ -180,12 +187,153 @@ export function TextFormField({
         autoComplete={autoCompleteDisabled ? "off" : undefined}
         {...(onChange ? { onChange } : {})}
       />
+
       {explanationText && (
         <ExplanationText link={explanationLink} text={explanationText} />
       )}
     </div>
   );
 }
+
+export function MultiSelectField({
+  name,
+  label,
+  subtext,
+  options,
+  onChange,
+  error,
+  hideError,
+  small,
+  selectedInitially,
+}: {
+  selectedInitially: string[];
+  name: string;
+  label: string;
+  subtext?: string | JSX.Element;
+  options: { value: string; label: string }[];
+  onChange?: (selected: string[]) => void;
+  error?: string;
+  hideError?: boolean;
+  small?: boolean;
+}) {
+  const [selectedOptions, setSelectedOptions] =
+    useState<string[]>(selectedInitially);
+
+  const handleCheckboxChange = (value: string) => {
+    const newSelectedOptions = selectedOptions.includes(value)
+      ? selectedOptions.filter((option) => option !== value)
+      : [...selectedOptions, value];
+
+    setSelectedOptions(newSelectedOptions);
+    if (onChange) {
+      onChange(newSelectedOptions);
+    }
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="flex gap-x-2 items-center">
+        <Label small={small}>{label}</Label>
+        {error ? (
+          <ManualErrorMessage>{error}</ManualErrorMessage>
+        ) : (
+          !hideError && (
+            <ErrorMessage
+              name={name}
+              component="div"
+              className="text-error my-auto text-sm"
+            />
+          )
+        )}
+      </div>
+
+      {subtext && <SubLabel>{subtext}</SubLabel>}
+      <div className="mt-2">
+        {options.map((option) => (
+          <label key={option.value} className="flex items-center mb-2">
+            <input
+              type="checkbox"
+              name={name}
+              value={option.value}
+              checked={selectedOptions.includes(option.value)}
+              onChange={() => handleCheckboxChange(option.value)}
+              className="mr-2"
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+interface MarkdownPreviewProps {
+  name: string;
+  label: string;
+  placeholder?: string;
+  error?: string;
+}
+
+export const MarkdownFormField = ({
+  name,
+  label,
+  error,
+  placeholder = "Enter your markdown here...",
+}: MarkdownPreviewProps) => {
+  const [field, _] = useField(name);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const togglePreview = () => {
+    setIsPreviewOpen(!isPreviewOpen);
+  };
+
+  return (
+    <div className="flex flex-col space-y-4 mb-4">
+      <Label>{label}</Label>
+      <div className="border border-gray-300 rounded-md">
+        <div className="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-t-md">
+          <div className="flex items-center space-x-2">
+            <FaMarkdown className="text-gray-500" />
+            <span className="text-sm font-semibold text-gray-600">
+              Markdown
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={togglePreview}
+            className="text-sm font-semibold text-gray-600 hover:text-gray-800 focus:outline-none"
+          >
+            {isPreviewOpen ? "Write" : "Preview"}
+          </button>
+        </div>
+        {isPreviewOpen ? (
+          <div className="p-4 border-t border-gray-300">
+            <ReactMarkdown className="prose" remarkPlugins={[remarkGfm]}>
+              {field.value}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <div className="pt-2 px-2">
+            <textarea
+              {...field}
+              rows={2}
+              placeholder={placeholder}
+              className={`w-full p-2 border border-border rounded-md border-gray-300`}
+            />
+          </div>
+        )}
+      </div>
+      {error ? (
+        <ManualErrorMessage>{error}</ManualErrorMessage>
+      ) : (
+        <ErrorMessage
+          name={name}
+          component="div"
+          className="text-red-500 text-sm mt-1"
+        />
+      )}
+    </div>
+  );
+};
 
 interface BooleanFormFieldProps {
   name: string;
@@ -195,6 +343,7 @@ interface BooleanFormFieldProps {
   noPadding?: boolean;
   small?: boolean;
   alignTop?: boolean;
+  noLabel?: boolean;
 }
 
 export const BooleanFormField = ({
@@ -203,6 +352,7 @@ export const BooleanFormField = ({
   subtext,
   onChange,
   noPadding,
+  noLabel,
   small,
   alignTop,
 }: BooleanFormFieldProps) => {
@@ -212,13 +362,17 @@ export const BooleanFormField = ({
         <Field
           name={name}
           type="checkbox"
-          className={`${noPadding ? "mr-3" : "mx-3"} px-5 w-3.5 h-3.5 ${alignTop ? "mt-1" : "my-auto"}`}
+          className={`${noPadding ? "mr-3" : "mx-3"} px-5 w-3.5 h-3.5 ${
+            alignTop ? "mt-1" : "my-auto"
+          }`}
           {...(onChange ? { onChange } : {})}
         />
-        <div>
-          <Label small={small}>{label}</Label>
-          {subtext && <SubLabel>{subtext}</SubLabel>}
-        </div>
+        {!noLabel && (
+          <div>
+            <Label small={small}>{label}</Label>
+            {subtext && <SubLabel>{subtext}</SubLabel>}
+          </div>
+        )}
       </label>
       <ErrorMessage
         name={name}
